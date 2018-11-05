@@ -7,4 +7,5 @@ SHORTCUT_LAYER = "shortcut"
 ROUTE_LAYER = "route"
 UPSAMPLE_LAYER = "upsample"
 YOLO_LAYER = "yolo"
+TEST_IMAGE = "images/dog-cycle-car.png"
 
