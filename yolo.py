@@ -17,7 +17,7 @@ class Yolo(nn.Module):
         batch_size = output.size(0)
         stride = input_dim // output.size(2)
         # print(input_dim, stride)
-        grid_size = input_dim // stride
+        grid_size = output.size(2)
         bbox_attrs = 5 + num_classes
         num_anchors = len(anchors)
         anchors = [(a[0] / stride, a[1] / stride) for a in anchors]
