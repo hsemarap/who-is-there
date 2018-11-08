@@ -1,4 +1,5 @@
 YOLO_CONFIG_FILE = "yolov3.cfg"
+WEIGHTS_FILE = "yolov3.weights"
 
 # Block/Layer Types
 NET_LAYER = "net"

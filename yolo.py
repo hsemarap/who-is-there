@@ -104,3 +104,43 @@ class Yolo(nn.Module):
             input = output
         detections = torch.cat(detections_list, 1)
         return detections
+
+    def load_weights(self):
+        f = open(constants.WEIGHTS_FILE, "rb")
+        header = np.fromfile(f, dtype=np.int32, count=5)
+        weights = np.fromfile(f, dtype=np.float32)
+        f.close()
+        ptr = 0
+        for (index, (module_config, module)) in enumerate(zip(self.config_list[1:], self.module_list)):
+            if module_config["type"] == "convolutional":
+                conv_layer = module[0]
+                if "batch_normalize" in module_config:
+
+                    batch_norm_layer = module[1]
+                    num_bias = batch_norm_layer.bias.numel()
+
+                    batch_norm_bias = torch.from_numpy(weights[ptr: ptr + num_bias]).view_as(batch_norm_layer.bias)
+                    batch_norm_layer.bias.data.copy_(batch_norm_bias)
+                    ptr += num_bias
+
+                    batch_norm_weights = torch.from_numpy(weights[ptr: ptr + num_bias]).view_as(batch_norm_layer.weight)
+                    batch_norm_layer.weight.data.copy_(batch_norm_weights)
+                    ptr += num_bias
+
+                    batch_norm_running_mean = torch.from_numpy(weights[ptr: ptr + num_bias]).view_as(batch_norm_layer.running_mean)
+                    batch_norm_layer.running_mean.data.copy_(batch_norm_running_mean)
+                    ptr += num_bias
+
+                    batch_norm_running_variance = torch.from_numpy(weights[ptr: ptr + num_bias]).view_as(batch_norm_layer.running_var)
+                    batch_norm_layer.running_var.data.copy_(batch_norm_running_variance)
+                    ptr += num_bias
+                else:
+                    num_bias = conv_layer.bias.numel()
+                    conv_bias = torch.from_numpy(weights[ptr: ptr + num_bias]).view_as(conv_layer.bias)
+                    conv_layer.bias.data.copy_(conv_bias)
+                    ptr += num_bias
+
+                num_w = conv_layer.weight.numel()
+                conv_w = torch.from_numpy(weights[ptr: ptr + num_w]).view_as(conv_layer.weight)
+                conv_layer.weight.data.copy_(conv_w)
+                ptr += num_w
