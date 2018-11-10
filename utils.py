@@ -1,5 +1,6 @@
 import constants
 import cv2
+import os
 import torch
 from torch.autograd import Variable
 import numpy as np
@@ -29,15 +30,41 @@ def parse_config():
     return config
 
 
-def get_test_input():
-    img = cv2.imread(constants.TEST_IMAGE)
-    img = cv2.resize(img, (416, 416))
-    img_ = img[:, :, ::-1].transpose((2, 0, 1))
-    img_ = img_[np.newaxis, :, :, :]/255.0
-    img_ = torch.from_numpy(img_).float()
-    img_var = Variable(img_)
-    return img_var
+def resize_image_fixed_aspect_ratio(image, input_dimensions):
+    """
+    Resize image without altering it's aspect ratio, by padding with pixels valued 128
+    :param image: Input image
+    :param input_dimensions: array_like
+            Target dimensions of the image [height, width]
+    :return:
+    """
+    image_width, image_height = image.shape[1], image.shape[0]
+    width, height = input_dimensions
+    ratio = min(width / image_width, height / image_height)
+    new_width = int(image_width * ratio)
+    new_height = int(image_height * ratio)
+    new_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
 
+    #create new image filled with value 128
+    resized_image = np.full((height, width, 3), 128)
+    embed_image_top, embed_image_left = (height - new_height) // 2, (width - new_width) // 2
+    embed_image_bottom, embed_image_right = embed_image_top + new_height, embed_image_left + new_width
+    #Embed the resized image into padded image
+    resized_image[embed_image_top:embed_image_bottom, embed_image_left:embed_image_right, :] = new_image
+
+    return resized_image
+
+def process_image(image, target_height):
+    resized_image = resize_image_fixed_aspect_ratio(image, (target_height, target_height))
+    processed_image = resized_image[:, :, ::-1].transpose((2, 0, 1))
+    processed_image = processed_image[np.newaxis, :, :, :] / 255.0
+    processed_image = torch.from_numpy(processed_image).float()
+    return processed_image
+
+def get_coco_classes():
+    f = open(constants.COCO_CLASSES, "r")
+    coco_classes = f.read().splitlines()
+    return coco_classes
 
 def object_thresholding(output, threshold=0.5):
     """
@@ -65,7 +92,7 @@ def non_max_suppression(thresholded_detections, iou_threshold=0.5):
     # print(max_class_score)
     thresholded_detections = torch.cat((thresholded_detections[:, 0:5], max_class_index.unsqueeze(1).float(), max_class_score.unsqueeze(1)), 1)
     # print(thresholded_detections)
-
+    true_output_list = []
     unique_classes = max_class_index.unique()
     for unique_class_index in unique_classes:
         detections_of_class = thresholded_detections[thresholded_detections[:, 5] == unique_class_index.float()]
@@ -85,6 +112,11 @@ def non_max_suppression(thresholded_detections, iou_threshold=0.5):
             candidate_detections = candidate_detections[iou_arr < iou_threshold]
             sorted_detections_of_class = torch.cat((sorted_detections_of_class[0:current_detection_index+1, :], candidate_detections))
         # print("Sorted:", sorted_detections_of_class.shape)
+        true_output_list.append(sorted_detections_of_class)
+    true_output = torch.cat(true_output_list)
+    # print("True:")
+    # print(true_output)
+    return true_output
 
 def center_coord_to_diagonals(center_coords_with_dimension):
     """
@@ -125,3 +157,14 @@ def compute_iou(detection_1, detection_2):
     iou = intersection_area / union_area
 
     return torch.tensor([iou])
+
+def draw_box(rectangle_coords, image, label):
+    c1 = tuple(rectangle_coords[:2].int())
+    c2 = tuple(rectangle_coords[2:4].int())
+    color = (255, 0, 0)
+    cv2.rectangle(image, c1, c2, color, 1)
+    t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1 , 1)[0]
+    c2 = c1[0] + t_size[0] + 3, c1[1] + t_size[1] + 4
+    cv2.rectangle(image, c1, c2,color, -1)
+    cv2.putText(image, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1, [225,255,255], 1);
+    return image

@@ -12,6 +12,7 @@ class Yolo(nn.Module):
         super(Yolo, self).__init__()
         self.config_list = utils.parse_config()
         self.module_list = models.create_modules()
+        self.meta = self.config_list[0]
 
     def transform_output(self, output, input_dim, anchors, num_classes, CUDA=False):
         batch_size = output.size(0)
