@@ -76,7 +76,7 @@ class Yolo(nn.Module):
         detections_list = []
         for (index, (module_config, module)) in enumerate(zip(self.config_list[1:], self.module_list)):
             module_type = module_config["type"]
-            print(module_type)
+            # print(module_type)
             if module_type in [constants.CONVOLUTIONAL_LAYER, constants.UPSAMPLE_LAYER]:
                 output = module(input)
             elif module_type == constants.SHORTCUT_LAYER:
