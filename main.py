@@ -3,6 +3,7 @@ import torch
 import pprint
 import cv2
 import os
+import time
 from torch.autograd import Variable
 from yolo import *
 
@@ -10,15 +11,26 @@ model = Yolo()
 model.load_weights()
 coco_classes = utils.get_coco_classes()
 image_list = [constants.TEST_IMAGE]
+model.eval()
+CUDA = torch.cuda.is_available()
+
+if CUDA:
+    model.cuda()
 
 def detect_image(image_np):
     target_dimension = int(model.meta["height"])
     processed_img = utils.process_image(image_np, target_dimension)
     image_dimension = torch.FloatTensor([image_np.shape[1], image_np.shape[0]])
     scaling_factor = torch.min(target_dimension / image_dimension)
+    if CUDA:
+        processed_img = processed_img.cuda()
     image_var = Variable(processed_img)
     # 416 * 416 * (1/(8*8) + 1/(16*16) + 1/(32*32) )*3
-    output = model(image_var, False)
+    start = time.time()
+    with torch.no_grad():
+        output = model(image_var, CUDA)
+    end = time.time()
+    print("Total time: {}".format(end - start))
 
     # print("output", output.shape)
     thresholded_output = utils.object_thresholding(output[0])
@@ -83,5 +95,5 @@ def cam(idx=0):
     video_capture.release()
     cv2.destroyAllWindows()
 
-perform_detection(image_list)
-# cam()
+# perform_detection(image_list)
+cam()
