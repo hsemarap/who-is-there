@@ -87,6 +87,8 @@ def non_max_suppression(thresholded_detections, iou_threshold=0.5):
     :return: output: [? x 7] = ? depends on NMS filtering,
             7 = 4 coordinates + object score +
     """
+    if thresholded_detections.size(0) == 0:
+        return thresholded_detections
     max_class_score, max_class_index = torch.max(thresholded_detections[:, 5:5 + constants.NUM_CLASSES], 1)
     # print(max_class_index)
     # print(max_class_score)
