@@ -6,6 +6,10 @@ import os
 import time
 from torch.autograd import Variable
 from yolo import *
+import constants
+import numpy as np
+
+from Nw.Facerecognition import face_recognition_utils
 
 model = Yolo()
 model.load_weights()
@@ -16,6 +20,7 @@ CUDA = torch.cuda.is_available()
 
 if CUDA:
     model.cuda()
+
 
 def detect_image(image_np):
     target_dimension = int(model.meta["height"])
@@ -38,7 +43,8 @@ def detect_image(image_np):
     # print(output[0])
     true_output = utils.non_max_suppression(thresholded_output)
     # print("True output", true_output.shape)
-    if (true_output.size(0) > 0):
+    original_image_np = np.copy(image_np)
+    if true_output.size(0) > 0:
         # Offset for padded image
         vertical_offset = (target_dimension - scaling_factor * image_dimension[0].item()) / 2
         horizontal_offset = (target_dimension - scaling_factor * image_dimension[1].item()) / 2
@@ -55,8 +61,20 @@ def detect_image(image_np):
 
             # print(image_np.shape)
             class_label = coco_classes[output_box[5].int()]
+            print("Output Box:", output_box, "Class Label:", class_label)
+            print("Rect coords:", rect_coords)
+            if constants.PERFORM_FACE_DETECTION and class_label == "person":
+                rc = rect_coords.int()
+                person_img_np = original_image_np[rc[1]:rc[3], rc[0]:rc[2]]
+                # print("person_img_np: ", person_img_np, person_img_np.shape)
+                # cv2.imshow("bounded_box_img", person_img_np)
+                # cv2.waitKey(0)
+                face_label = face_recognition_utils.recognize_face_in_patch(person_img_np)
+                if face_label is not None:
+                    class_label = face_label
             image_np = utils.draw_box(rect_coords, image_np, class_label)
     return image_np
+
 
 def perform_detection(image_list):
     images_np, image_names = [], []
@@ -110,6 +128,6 @@ def video_detection(idx=0):
     video_writer.release()
     cv2.destroyAllWindows()
 
-#cam("/Users/rahul/Documents/BME-DeepLearning/project/Nw/important.mp4")
-video_detection()
-
+#video_detection("/Users/rahul/Documents/BME-DeepLearning/project/Nw/important.mp4")
+#video_detection()
+perform_detection(["../IMG_2090.JPG"])
