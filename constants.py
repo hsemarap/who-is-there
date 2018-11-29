@@ -12,3 +12,5 @@ YOLO_LAYER = "yolo"
 TEST_IMAGE = "images/dog-cycle-car.png"
 
 NUM_CLASSES = 80
+
+PERFORM_FACE_DETECTION = True
