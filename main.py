@@ -71,21 +71,35 @@ def perform_detection(image_list):
         output_name = "output/det_" + image_name
         cv2.imwrite(output_name, output_image)
 
-def cam(idx=0):
+
+def video_detection(idx=0):
+    """
+    :param idx: Webcam id or the video file name
+    """
+    is_input_webcam = (type(idx) == int)
     video_capture = cv2.VideoCapture(idx)
-    video_capture.set(3, 720)
-    video_capture.set(4, 720)
 
     print("Quit by pressing 'x'")
+    frame_width = int(video_capture.get(3))
+    frame_height = int(video_capture.get(4))
+    fps = 10
+    # Check if we are reading a Video File.
+    if not is_input_webcam:
+        fps = video_capture.get(cv2.CAP_PROP_FPS)
+        print("Setting fps={}".format(fps))
+    video_writer = cv2.VideoWriter('detection_output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps,
+                                   (frame_width, frame_height))
 
     while True:
         isRead, read_frame = video_capture.read()
 
         if isRead:
             output_frame = detect_image(read_frame)
-            cv2.imshow('Webcam', output_frame)
+            if is_input_webcam:
+                cv2.imshow('Webcam', output_frame)
+            video_writer.write(output_frame)
         else:
-            print("Error")
+            print("Error reading the video input source: {}".format(idx))
             break
 
         key_press = cv2.waitKey(1) & 0xFF
@@ -93,7 +107,9 @@ def cam(idx=0):
             break
 
     video_capture.release()
+    video_writer.release()
     cv2.destroyAllWindows()
 
-# perform_detection(image_list)
-cam()
+#cam("/Users/rahul/Documents/BME-DeepLearning/project/Nw/important.mp4")
+video_detection()
+
