@@ -164,9 +164,10 @@ def draw_box(rectangle_coords, image, label):
     c1 = tuple(rectangle_coords[:2].int())
     c2 = tuple(rectangle_coords[2:4].int())
     color = (255, 0, 0)
-    cv2.rectangle(image, c1, c2, color, 1)
-    t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1 , 1)[0]
+    scaling_factor = image.shape[0] // 400
+    cv2.rectangle(image, c1, c2, color, 1 * scaling_factor)
+    t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1*scaling_factor , 1*scaling_factor)[0]
     c2 = c1[0] + t_size[0] + 3, c1[1] + t_size[1] + 4
-    cv2.rectangle(image, c1, c2,color, -1)
-    cv2.putText(image, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1, [225,255,255], 1);
+    cv2.rectangle(image, c1, c2, color, -1)
+    cv2.putText(image, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1*scaling_factor, [225,255,255], 1*scaling_factor);
     return image
